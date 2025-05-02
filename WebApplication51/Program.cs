@@ -8,17 +8,20 @@ class Program
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
-        string? url = builder.Configuration["SupabaseSetting:ApiUrl"];
-        string? key = builder.Configuration["SupabaseSetting:ApiKey"];
+        
+        string url = builder.Configuration["SupabaseSetting:ApiUrl"];
+        string key = builder.Configuration["SupabaseSetting:ApiKey"];
         var options = new Supabase.SupabaseOptions
         {
             AutoConnectRealtime = true
         };
-        Supabase.Client client = new Supabase.Client(url, key, options);
-        Supabase.Client supabase = client;
-        SupaBaseContext supabaseContext = new();
+        
+        var supabase = new Supabase.Client(url, key, options);
+        var supabaseContext = new SupaBaseContext();
+        
         builder.Services.AddSingleton(supabase);
         builder.Services.AddSingleton(supabaseContext);
+
         var app = builder.Build();
         if (app.Environment.IsDevelopment())
         {

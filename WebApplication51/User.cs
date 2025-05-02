@@ -24,23 +24,3 @@ namespace WebApplication51
 
     }
 }
-
-
-namespace WebApplication51
-{
-    [Table("city")]
-    public class City : BaseModel
-    {
-
-        [PrimaryKey("id")]
-        public int Id { get; set; }
-
-        [Column("name")]
-        public string name { get; set; }
-
-        [Column("population")]
-        public string population { get; set; }
-
-    }
-}
-

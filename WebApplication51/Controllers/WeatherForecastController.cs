@@ -21,8 +21,6 @@ namespace WebApplication51.Controllers
             _supabaseClient = supabaseClient;
             _supabaseContext = supaBaseContext;
         }
-
-
         [HttpGet("GetAllUsers", Name = "GetAllUsers")]
         public async Task<string> GetAllUsers()
         {
@@ -37,7 +35,6 @@ namespace WebApplication51.Controllers
             }
         }
 
-
         [HttpPost("InsertUser", Name = "InsertUser")]
         public async Task<ActionResult> InsertUser([FromBody] UserData userData)
         {
@@ -45,7 +42,7 @@ namespace WebApplication51.Controllers
             {
                 if (string.IsNullOrEmpty(userData.Login) || string.IsNullOrEmpty(userData.Password))
                 {
-                    return BadRequest("������ ��� ����� ������.");
+                    return BadRequest("логин или пароль пустой.");
                 }
                 else
                 {
@@ -54,27 +51,27 @@ namespace WebApplication51.Controllers
                         Id = 0,
                         Login = userData.Login,
                         Password = userData.Password,
-                        Age = userData.Age ?? ""
+                        Age = userData.age ?? "",
+                        city_id = userData.city_id ?? ""
                     };
 
                     bool result = await _supabaseContext.InsertUser(_supabaseClient, newUser);
 
                     if (result == true)
                     {
-                        return Ok("����������� ������ �������.");
+                        return Ok("регестрация прошла успешно.");
                     }
                     else
                     {
-                        return BadRequest("�� ������� �������� ������������ � ��.");
+                        return BadRequest("не удалось добавить в бд");
                     }
                 }
             }
             catch (Exception)
             {
-                return BadRequest("����������� ������.");
+                return BadRequest("ошибка");
             }
         }
-
 
         [HttpPut("UpdateUser", Name = "UpdateUser")]
         public async Task<string> UpdateUser(int id, [FromBody] UserData userData)
@@ -86,22 +83,22 @@ namespace WebApplication51.Controllers
 
                 if (user == null)
                 {
-                    return "���� ������������";
+                    return "нету пользователя";
                 }
 
                 user.Login = userData.Login;
                 user.Password = userData.Password;
-                user.Age = userData.Age;
+                user.Age = userData.age;
+                user.city_id = userData.city_id;
 
                 await _supabaseClient.From<User>().Update(user);
-                return "��";
+                return "ок";
             }
             catch (Exception)
             {
-                return "������";
+                return "ошикба";
             }
         }
-
 
         [HttpDelete("DeleteUser", Name = "DeleteUser")]
         public async Task<string> DeleteUser(int id)
@@ -113,19 +110,117 @@ namespace WebApplication51.Controllers
 
                 if (user == null)
                 {
-                    return "������������ ����";
+                    return "пользователя нет";
                 }
 
                 await _supabaseClient.From<User>().Delete(user);
-                return "��";
+                return "ок";
             }
             catch (Exception)
             {
-                return "������";
+                return "ошибка";
+            }
+        }
+        
+
+        [HttpGet("GetAllCities", Name = "GetAllCities")]
+        public async Task<string> GetAllCities()
+        {
+            try
+            {
+                var cities = await _supabaseContext.GetCities(_supabaseClient);
+                return JsonConvert.SerializeObject(cities, Formatting.Indented);
+            }
+            catch (Exception)
+            {
+                return "ошибка при получение городов";
+            }
+        }
+
+        [HttpPost("InsertCity", Name = "InsertCity")]
+        public async Task<ActionResult> InsertCity([FromBody] CityData cityData)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(cityData.Name))
+                {
+                    return BadRequest("название города не должно быть пустым");
+                }
+
+                if (cityData.Population <= 0)
+                {
+                    return BadRequest("население должго быть больше 0");
+                }
+                var nextId = 1;
+                var cities = await _supabaseClient.From<City>().Get();
+                if (cities.Models.Any())
+                {
+                    nextId = cities.Models.Max(c => c.Id) + 1;
+                }
+
+                City newCity = new City
+                {
+                    Id = nextId,
+                    Name = cityData.Name,
+                    Population = cityData.Population
+                };
+
+                await _supabaseClient.From<City>().Insert(newCity);
+                return Ok("город добавлен");
+            }
+            catch (Exception)
+            {
+                return BadRequest("не удалось добавитьв бд");
+            }
+        }
+
+        [HttpPut("UpdateCity", Name = "UpdateCity")]
+        public async Task<string> UpdateCity(int id, [FromBody] CityData cityData)
+        {
+            try
+            {
+                var result = await _supabaseClient.From<City>().Where(x => x.Id == id).Get();
+                var city = result.Models.FirstOrDefault();
+                
+                if (city == null)
+                {
+                    return "город не найден";
+                }
+
+                city.Name = cityData.Name;
+                city.Population = cityData.Population;
+
+                await _supabaseClient.From<City>().Update(city);
+                return "город добавлен";
+            }
+            catch (Exception)
+            {
+                return "ошибка при обновлении ";
+            }
+        }
+
+        [HttpDelete("DeleteCity", Name = "DeleteCity")]
+        public async Task<string> DeleteCity(int id)
+        {
+            try
+            {
+                var result = await _supabaseClient.From<City>().Where(x => x.Id == id).Get();
+                var city = result.Models.FirstOrDefault();
+
+                if (city == null)
+                {
+                    return "города нету";
+                }
+
+                await _supabaseClient.From<City>().Delete(city);
+                return "город удален";
+            }
+            catch (Exception)
+            {
+                return "ошибка при удалении ";
             }
         }
     }
-
 
     public class UserData
     {
@@ -140,6 +235,14 @@ namespace WebApplication51.Controllers
 
         [JsonProperty("city_id")]
         public string city_id { get; set; }
+    }
+    
+    public class CityData
+    {
+        [JsonProperty("name")]
+        public string Name { get; set; }
 
+        [JsonProperty("population")]
+        public int Population { get; set; }
     }
 }
